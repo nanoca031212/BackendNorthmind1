@@ -1,0 +1,154 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["admin", "public"]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@schema("admin")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("admin")
+}
+
+model Admin {
+  id                 String   @id @default(cuid())
+  name               String?
+  email              String   @unique
+  hashedPassword     String?
+  dataDeEntrada      DateTime @default(now())
+  dataDeUltimoAcesso DateTime @updatedAt
+
+  @@map("Admin")
+  @@schema("admin")
+}
+
+model User {
+  id                 String       @id @default(cuid())
+  name               String?
+  email              String?      @unique
+  emailVerified      DateTime?
+  image              String?
+  hashedPassword     String?
+  telefone           String?
+  pais               String?
+  aniversario        DateTime?
+  localizacao        String?
+  statusUltimoPedido String?
+  dataDeEntrada      DateTime     @default(now())
+  dataDeUltimoAcesso DateTime     @updatedAt
+  accounts           Account[]
+  pedidos            Pedido[]
+  sessions           Session[]
+  comentarios        Comentario[]
+
+  @@schema("admin")
+}
+
+model Pedido {
+  id           String    @id @default(cuid())
+  userId       String
+  status       String    @default("PENDENTE")
+  produtosIds  String[]
+  totalAmmount Float     @default(0)
+  dataCompra   DateTime  @default(now())
+  dataEntrega  DateTime?
+  user         User      @relation(fields: [userId], references: [id])
+
+  @@schema("admin")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@schema("admin")
+}
+
+model Produto {
+  id              String       @id @default(cuid())
+  nome            String
+  handle          String       @unique
+  descricao       String
+  preco           Float
+  precoOriginal   Float?
+  collection      String
+  fotos           String[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  fotoPrincipal   String?
+  mediaAvaliacoes Float        @default(5.0)
+  totalAvaliacoes Int          @default(0)
+  publicado       Boolean      @default(true)
+  opcoesTamanho   String[]     @default(["S", "M", "L", "XL", "XXL"])
+  opcoesCor       Json?        // [{ name: "Black", hex: "#000000" }]
+  highlights      Json?        // [{ icon: "Shield", title: "Warranty", text: "..." }]
+  materiais       Json?        // [{ item: "Cotton", percentage: "100%" }]
+  variantes       Json?        // [{ label: "50ml", price: 49.99, originalPrice: 65.00 }]
+  guiaTamanho     Json?        // { table: [...], note: "..." }
+  detalhesModelo  String?
+  instrucoesCuidado String?
+  especificacoes  String[]
+  videos          String[]
+  comentarios     Comentario[]
+  tipo            String       @default("ROUPA") // ["ROUPA", "PERFUME"]
+
+  @@schema("public")
+}
+
+model Comentario {
+  id        String   @id @default(cuid())
+  rating    Int      @default(5)
+  texto     String
+  fotos     String[]
+  videoUrl  String?
+  createdAt DateTime @default(now())
+  produtoId String
+  userId    String
+  userName  String?
+  produto   Produto  @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@schema("public")
+}
+
+model Collection {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  handle      String   @unique
+  description String?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@schema("public")
+}
